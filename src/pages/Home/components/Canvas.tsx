@@ -9,17 +9,16 @@ import CircleElement from "./Shapes/CircleElement";
 import RectElement from "./Shapes/RectElement";
 import TriangleElement from "./Shapes/TriangleElement";
 import TextElement from "./Text/TextElement";
-import { html } from "js-to-html";
+import { HtmlTag, html } from "js-to-html";
 import { Node, NodeConfig } from "konva/lib/Node";
 import { objectToCssString } from "../../../app/helpers/string";
 import saveAs from "file-saver";
 import { useCustomEventListener } from "react-custom-events";
 
 const Canvas = () => {
-  const [canvasWidth] = useState(window.innerWidth - 500);
-  const [canvasHeight] = useState((canvasWidth * 9) / 16);
+  const [canvasWidth] = useState(1080);
+  const [canvasHeight] = useState(608);
 
-  console.log("rerendered", canvasWidth);
   const stageRef = createRef<Konva.Stage>();
   const dispatch = useAppDispatch();
   const { layers, selectedLayer } = useAppSelector((u) => u.layer);
@@ -31,62 +30,102 @@ const Canvas = () => {
     }
   };
 
-  const getLayers = (layerType: string) => {
-    const stage = stageRef.current?.getStage();
-    return (
-      stage?.find(layerType).map((text: Node<NodeConfig>, index: number) => {
-        let style = {};
+  const toPercentage = (num: number, divisor: number) => {
+    return (num / divisor) * 100;
+  };
 
-        switch (layerType) {
-          case "Text": {
-            style = {
-              position: "absolute",
-              left: `${text.attrs.x}px`,
-              top: `${text.attrs.y}px`,
-              font_size: `${text.attrs.fontSize}px`,
-              font_family: text.attrs.fontFamily,
-              color: text.attrs.fill,
-              letter_spacing: `${text.attrs.letterSpacing}px`,
-              line_height: text.attrs.lineHeight,
-              text_align: text.attrs.align,
-              width: `${text.attrs.width}px`,
-              height: `${text.attrs.height}px`,
-              z_index: layers.length - index,
-            };
-            break;
-          }
-          case "Rect": {
-            style = {
-              position: "absolute",
-              left: `${text.attrs.x}px`,
-              top: `${text.attrs.y}px`,
-              background: text.attrs.fill,
-              width: `${text.attrs.width}px`,
-              height: `${text.attrs.height}px`,
-              border_radius: `${text.attrs.radius}px`,
-              border_color: `${text.attrs.stroke}`,
-              border_width: `${text.attrs.strokeWidth}px`,
-              border_style: "solid",
-              z_index: index,
-            };
-            break;
-          }
-          default:
+  const getLayers = () => {
+    const contents: Array<HtmlTag<any>> = new Array<HtmlTag<any>>();
+    layers.map((layer, index) => {
+      let style = {};
+      switch (layer.type?.toLowerCase()) {
+        case "text": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            font_size: `${toPercentage(layer.fontSize || 0, canvasWidth)}vw`,
+            font_family: layer.fontFamily,
+            color: layer.fill,
+            letter_spacing: `${layer.letterSpacing}px`,
+            line_height: `${toPercentage((layer.fontSize || 0) * (layer.lineHeight || 0), canvasHeight)}vh`,
+            text_align: layer.align,
+            z_index: layers.length - index,
+          };
+          break;
         }
-        return html.p({ style: objectToCssString(style) }, text.attrs.text);
-      }) || []
-    );
+        case "rectangle": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}px`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          break;
+        }
+
+        case "circle": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x - (layer.radius || 0), canvasWidth)}%`, //substract radius since circle x and y is point to the center of the circle
+            top: `${toPercentage(layer.y - (layer.radius || 0), canvasHeight)}%`,
+            background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}%`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          break;
+        }
+
+        case "media": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            // background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}%`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          break;
+        }
+        default:
+      }
+      if (layer.type?.toLowerCase() == "media") {
+        contents.push(html.img({ style: objectToCssString(style), src: layer.src }));
+      } else {
+        contents.push(html.div({ style: objectToCssString(style) }, layer.text));
+      }
+    });
+    return contents;
   };
 
   const canvasToHtmlEvent = () => {
     const stage = stageRef.current?.getStage();
     if (stage) {
-      const textLayers = getLayers("Text");
-      const rectLayers = getLayers("Rect");
+      const bodyContentArray = getLayers();
 
       var finalHtml = html.html([
-        html.head([html.style("p { margin: 0 }")]),
-        html.body([...textLayers, ...rectLayers]),
+        html.head([
+          html.style("p { margin: 0 } body { margin: 0px }"),
+          html.link({ rel: "stylesheet", href: "./fonts/fonts.css" }),
+        ]),
+        html.body([...bodyContentArray]),
       ]);
       const htmlString = finalHtml.toHtmlDoc({ title: "test", pretty: true }, {});
 
@@ -109,9 +148,6 @@ const Canvas = () => {
       stageRef.current?.draw();
     }, 1);
   }, []);
-
-
-  console.log(canvasWidth)
 
   return (
     <Box p={5} alignSelf="start">

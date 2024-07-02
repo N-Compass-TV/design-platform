@@ -2,7 +2,7 @@ import { Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import { FaHome, FaSave } from "react-icons/fa";
 import { FaChartLine, FaPlus } from "react-icons/fa6";
 import { useEffect, useState } from "react";
-import { useAppSelector } from "../../../app/hooks/useStore";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks/useStore";
 import { usePutNewsTemplateByIdMutation } from "../../../app/services/api/endpoints/newsTemplate";
 import { UpdateNewsTemplateModel } from "../../../app/models/UpdateNewsTemplateModel";
 import { LoadingButton } from "@mui/lab";
@@ -11,12 +11,14 @@ import theme from "../../../app/theme";
 import WarningDialog from "./WarningDialog";
 import { useSnackbar } from "notistack";
 import { emitCustomEvent } from "react-custom-events";
+import { setSelectedLayer } from "../../../app/slices/layerSlice";
 
 const Header = () => {
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const { layers } = useAppSelector((s) => s.layer);
   const { template, isLoading } = useAppSelector((s) => s.newsTemplate);
   const { enqueueSnackbar } = useSnackbar();
+  const dispatch = useAppDispatch();
 
   const [updateTemplateTrigger, updateTemplateResult] = usePutNewsTemplateByIdMutation();
 
@@ -33,6 +35,7 @@ const Header = () => {
 
   const onSave = () => {
     if (layers.length > 0) {
+      dispatch(setSelectedLayer(undefined));
       saveTemplate().then(() => {
         emitCustomEvent("ce-canvastohtml");
       });
