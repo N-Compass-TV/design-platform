@@ -10,14 +10,13 @@ import RectElement from "./Shapes/RectElement";
 import TriangleElement from "./Shapes/TriangleElement";
 import TextElement from "./Text/TextElement";
 import { HtmlTag, html } from "js-to-html";
-import { Node, NodeConfig } from "konva/lib/Node";
 import { objectToCssString } from "../../../app/helpers/string";
 import saveAs from "file-saver";
 import { useCustomEventListener } from "react-custom-events";
 
 const Canvas = () => {
-  const [canvasWidth] = useState(1080);
-  const [canvasHeight] = useState(608);
+  const [canvasWidth] = useState(1920);
+  const [canvasHeight] = useState(1080);
 
   const stageRef = createRef<Konva.Stage>();
   const dispatch = useAppDispatch();
@@ -48,10 +47,21 @@ const Canvas = () => {
             font_family: layer.fontFamily,
             color: layer.fill,
             letter_spacing: `${layer.letterSpacing}px`,
-            line_height: `${toPercentage((layer.fontSize || 0) * (layer.lineHeight || 0), canvasHeight)}vh`,
+            line_height: `${(layer.lineHeight || 0) - 0.15}`,
             text_align: layer.align,
             z_index: layers.length - index,
           };
+          const textLines = layer.text?.split("\n");
+          if (textLines && textLines?.length > 1) {
+            const texts = textLines.map((m) => {
+              const element = html.div([html.span(m), html.br()]);
+              return element;
+            });
+            contents.push(html.div({ style: objectToCssString(style) }, texts));
+          } else {
+            contents.push(html.div({ style: objectToCssString(style) }, layer.text));
+          }
+
           break;
         }
         case "rectangle": {
@@ -68,6 +78,7 @@ const Canvas = () => {
             border_style: "solid",
             z_index: layers.length - index,
           };
+          contents.push(html.div({ style: objectToCssString(style) }, layer.text));
           break;
         }
 
@@ -85,6 +96,7 @@ const Canvas = () => {
             border_style: "solid",
             z_index: layers.length - index,
           };
+          contents.push(html.div({ style: objectToCssString(style) }, layer.text));
           break;
         }
 
@@ -102,37 +114,30 @@ const Canvas = () => {
             border_style: "solid",
             z_index: layers.length - index,
           };
+          contents.push(html.img({ style: objectToCssString(style), src: layer.src }));
           break;
         }
         default:
-      }
-      if (layer.type?.toLowerCase() == "media") {
-        contents.push(html.img({ style: objectToCssString(style), src: layer.src }));
-      } else {
-        contents.push(html.div({ style: objectToCssString(style) }, layer.text));
       }
     });
     return contents;
   };
 
   const canvasToHtmlEvent = () => {
-    const stage = stageRef.current?.getStage();
-    if (stage) {
-      const bodyContentArray = getLayers();
+    const bodyContentArray = getLayers();
 
-      var finalHtml = html.html([
-        html.head([
-          html.style("p { margin: 0 } body { margin: 0px }"),
-          html.link({ rel: "stylesheet", href: "./fonts/fonts.css" }),
-        ]),
-        html.body([...bodyContentArray]),
-      ]);
-      const htmlString = finalHtml.toHtmlDoc({ title: "test", pretty: true }, {});
+    var finalHtml = html.html([
+      html.head([
+        html.style("p { margin: 0 } body { margin: 0px }"),
+        html.link({ rel: "stylesheet", href: "./fonts/fonts.css" }),
+      ]),
+      html.body([...bodyContentArray]),
+    ]);
+    const htmlString = finalHtml.toHtmlDoc({ title: "test", pretty: true }, {});
 
-      const blob = new Blob([htmlString], { type: "text/html" });
+    const blob = new Blob([htmlString], { type: "text/html" });
 
-      saveAs(blob, "test.html");
-    }
+    saveAs(blob, "test.html");
   };
 
   useCustomEventListener(
@@ -140,7 +145,7 @@ const Canvas = () => {
     () => {
       canvasToHtmlEvent();
     },
-    []
+    [layers]
   );
 
   useEffect(() => {
