@@ -1,4 +1,4 @@
-import { createRef } from "react";
+import { createRef, useEffect, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import Konva from "konva";
 import { Box } from "@mui/material";
@@ -9,8 +9,15 @@ import CircleElement from "./Shapes/CircleElement";
 import RectElement from "./Shapes/RectElement";
 import TriangleElement from "./Shapes/TriangleElement";
 import TextElement from "./Text/TextElement";
+import { HtmlTag, html } from "js-to-html";
+import { objectToCssString } from "../../../app/helpers/string";
+import saveAs from "file-saver";
+import { useCustomEventListener } from "react-custom-events";
 
 const Canvas = () => {
+  const [canvasWidth] = useState(1920);
+  const [canvasHeight] = useState(1080);
+
   const stageRef = createRef<Konva.Stage>();
   const dispatch = useAppDispatch();
   const { layers, selectedLayer } = useAppSelector((u) => u.layer);
@@ -22,12 +29,137 @@ const Canvas = () => {
     }
   };
 
+  const toPercentage = (num: number, divisor: number) => {
+    return (num / divisor) * 100;
+  };
+
+  const getLayers = () => {
+    const contents: Array<HtmlTag<any>> = new Array<HtmlTag<any>>();
+    layers.map((layer, index) => {
+      let style = {};
+      switch (layer.type?.toLowerCase()) {
+        case "text": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            font_size: `${toPercentage(layer.fontSize || 0, canvasWidth)}vw`,
+            font_family: layer.fontFamily,
+            color: layer.fill,
+            letter_spacing: `${layer.letterSpacing}px`,
+            line_height: `${(layer.lineHeight || 0) - 0.15}`,
+            text_align: layer.align,
+            z_index: layers.length - index,
+          };
+          const textLines = layer.text?.split("\n");
+          if (textLines && textLines?.length > 1) {
+            const texts = textLines.map((m) => {
+              const element = html.div([html.span(m), html.br()]);
+              return element;
+            });
+            contents.push(html.div({ style: objectToCssString(style) }, texts));
+          } else {
+            contents.push(html.div({ style: objectToCssString(style) }, layer.text));
+          }
+
+          break;
+        }
+        case "rectangle": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}px`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          contents.push(html.div({ style: objectToCssString(style) }, layer.text));
+          break;
+        }
+
+        case "circle": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x - (layer.radius || 0), canvasWidth)}%`, //substract radius since circle x and y is point to the center of the circle
+            top: `${toPercentage(layer.y - (layer.radius || 0), canvasHeight)}%`,
+            background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}%`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          contents.push(html.div({ style: objectToCssString(style) }, layer.text));
+          break;
+        }
+
+        case "media": {
+          style = {
+            position: "absolute",
+            left: `${toPercentage(layer.x, canvasWidth)}%`,
+            top: `${toPercentage(layer.y, canvasHeight)}%`,
+            // background: layer.fill,
+            width: `${toPercentage(layer.width || 0, canvasWidth)}%`,
+            height: `${toPercentage(layer.height || 0, canvasHeight)}vh`,
+            border_radius: `${layer.radius}%`,
+            border_color: `${layer.stroke}`,
+            border_width: `${layer.strokeWidth}px`,
+            border_style: "solid",
+            z_index: layers.length - index,
+          };
+          contents.push(html.img({ style: objectToCssString(style), src: layer.src }));
+          break;
+        }
+        default:
+      }
+    });
+    return contents;
+  };
+
+  const canvasToHtmlEvent = () => {
+    const bodyContentArray = getLayers();
+
+    var finalHtml = html.html([
+      html.head([
+        html.style("p { margin: 0 } body { margin: 0px }"),
+        html.link({ rel: "stylesheet", href: "./fonts/fonts.css" }),
+      ]),
+      html.body([...bodyContentArray]),
+    ]);
+    const htmlString = finalHtml.toHtmlDoc({ title: "test", pretty: true }, {});
+
+    const blob = new Blob([htmlString], { type: "text/html" });
+
+    saveAs(blob, "test.html");
+  };
+
+  useCustomEventListener(
+    "ce-canvastohtml",
+    () => {
+      canvasToHtmlEvent();
+    },
+    [layers]
+  );
+
+  useEffect(() => {
+    setTimeout(() => {
+      stageRef.current?.draw();
+    }, 1);
+  }, []);
+
   return (
-    <Box p={5}>
+    <Box p={5} alignSelf="start">
       <Stage
         className="konva-container"
-        width={1280}
-        height={720}
+        width={canvasWidth}
+        height={canvasHeight}
         style={{ background: "#fff" }}
         ref={stageRef}
         onMouseDown={checkDeselect}

@@ -9,21 +9,24 @@ import { BrowserRouter } from "react-router-dom";
 import AuthProvider from "./app/providers/AuthProvider";
 import { ThemeProvider } from "@mui/material";
 import theme from "./app/theme";
+import { SnackbarProvider } from "notistack";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   // <React.StrictMode>
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <AuthProvider>
-          <BrowserRouter>
+  <Provider store={store}>
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <BrowserRouter>
+          <SnackbarProvider maxSnack={3}>
             <App />
-          </BrowserRouter>
-        </AuthProvider>
-      </ThemeProvider>
-    </Provider>
+          </SnackbarProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
+  </Provider>
   // </React.StrictMode>
 );
 

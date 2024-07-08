@@ -118,6 +118,7 @@ const MediaList: FC<MediaListProps> = ({ setSelectedMedia }) => {
           </Badge>
         ) : (
           <Skeleton
+            animation="wave"
             key={index}
             sx={{ m: 1 }}
             variant="rectangular"

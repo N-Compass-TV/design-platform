@@ -1,1 +1,1 @@
-REACT_APP_API_BASE_URL = "https://dev-api.n-compass.online/api/"
+REACT_APP_API_BASE_URL = "https://api-development.n-compass.online:8003/api/"

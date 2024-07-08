@@ -1,6 +1,7 @@
 import { Action, ThunkAction, configureStore } from "@reduxjs/toolkit";
 import userReducer from "../slices/userSlice";
 import layerReducer from "../slices/layerSlice";
+import newsTemplateReducer from "../slices/newsTemplateSlice";
 import { designPlatformApi } from "../services/api";
 import { tier1Api } from "../services/api/tier1";
 
@@ -8,6 +9,7 @@ export const store = configureStore({
   reducer: {
     user: userReducer,
     layer: layerReducer,
+    newsTemplate: newsTemplateReducer,
     [designPlatformApi.reducerPath]: designPlatformApi.reducer,
     [tier1Api.reducerPath]: tier1Api.reducer,
   },

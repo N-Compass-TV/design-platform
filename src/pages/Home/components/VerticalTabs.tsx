@@ -68,8 +68,7 @@ const VerticalTabs = () => {
                 borderRadius: "0px",
                 borderTopRightRadius: index == 0 ? "5px" : "",
                 borderBottomRightRadius: index == tabs.length - 1 ? "5px" : "",
-                borderBottom:
-                  index < tabs.length - 1 ? "1px solid #ededed" : "",
+                borderBottom: index < tabs.length - 1 ? "1px solid #ededed" : "",
               }}
               onClick={tab.onClick}
             >

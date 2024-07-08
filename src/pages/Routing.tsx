@@ -1,27 +1,13 @@
-import { Routes, Route, BrowserRouter, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Home from "./Home";
-import Signin from "./Signin";
-import { useAuth } from "../app/hooks/useAuth";
+import PageNotFound from "./PageNotFound";
 
 const Routing = () => {
-  const { isAuthenticated, user } = useAuth();
-
-  const getRouteByRole = (role: string) => {
-    return (
-      <>
-        <Route index element={<Home />} />
-      </>
-    );
-  };
-
   return (
     <Routes>
-      {getRouteByRole("")}
-      {/* {isAuthenticated && user ? (
-        getRouteByRole("")
-      ) : (
-        <Route path="/signin" element={<Signin />} />
-      )} */}
+      <Route path="*" element={<PageNotFound />} />
+      <Route path={`newstemplate/:newstemplateid`} element={<Home />} />
+      
     </Routes>
   );
 };
